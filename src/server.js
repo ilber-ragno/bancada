@@ -72,6 +72,14 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.get('/invite/:token', (req, res) => invitePage(req, res));
 app.post('/invite/:token', form, acceptInvite);
 app.get('/sw.js', (req, res) => res.type('application/javascript').send(fs.readFileSync(path.join(cfg.root, 'web', 'sw.js'), 'utf8')));
+// Instalação no iPad/iPhone (tela inicial): manifesto e ícones são públicos, sem dados
+app.get('/manifest.webmanifest', (req, res) => res.type('application/manifest+json').send(fs.readFileSync(path.join(cfg.root, 'web', 'manifest.webmanifest'), 'utf8')));
+const icons = JSON.parse(fs.readFileSync(path.join(cfg.root, 'assets', 'icons.json'), 'utf8'));
+app.get('/icons/:file', (req, res) => {
+  const b64 = Object.hasOwn(icons, req.params.file) && icons[req.params.file];
+  if (!b64) return res.status(404).end();
+  res.type('png').set('Cache-Control', 'public, max-age=86400').send(Buffer.from(b64, 'base64'));
+});
 
 // Daqui para baixo, só com sessão completa (senha trocada e 2FA, se exigido)
 app.use((req, res, next) => {
@@ -82,7 +90,10 @@ app.use((req, res, next) => {
   next();
 });
 
-const indexHtml = () => fs.readFileSync(path.join(cfg.root, 'web', 'index.html'), 'utf8').replace('<!--BANCADA_CONFIG-->', '<script>window.BANCADA_LIVE=true</script>');
+// A tela fica dividida em partes em web/ui; o servidor junta na ordem ao abrir
+const uiDir = path.join(cfg.root, 'web', 'ui');
+const indexHtml = () => fs.readdirSync(uiDir).filter((f) => /^\d+\.html$/.test(f)).sort().map((f) => fs.readFileSync(path.join(uiDir, f), 'utf8')).join('')
+  .replace('<!--BANCADA_CONFIG-->', '<script>window.BANCADA_LIVE=true</script>');
 app.get('/', (req, res) => res.type('html').send(indexHtml()));
 
 app.use('/api', (req, res, next) => {
@@ -265,7 +276,7 @@ app.use((err, req, res, next) => { console.error('[erro]', err.message); res.sta
 const httpServer = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
 httpServer.on('upgrade', (req, socket, head) => {
-  const originOk = !req.headers.origin || (() => { try { return new URL(req.headers.origin).host === req.headers.host; } catch { return false; } })();
+  const originOk = !req.headers.origin || sameOrigin({ ...req, method: 'POST' });
   const x = req.url === '/ws' && originOk ? sessionOf(req) : null;
   if (!x || x.session.setup) { socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n'); socket.destroy(); return; }
   wss.handleUpgrade(req, socket, head, (ws) => addClient(ws, x.user.id, x.sid));
