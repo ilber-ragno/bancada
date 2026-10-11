@@ -1,0 +1,72 @@
+{
+  "claude": {
+    "bin": "claude",
+    "base": [
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--verbose"
+    ],
+    "normal": [
+      "--permission-mode",
+      "acceptEdits"
+    ],
+    "readOnly": [
+      "--permission-mode",
+      "plan"
+    ],
+    "danger": [
+      "--dangerously-skip-permissions"
+    ],
+    "resume": [
+      "--resume",
+      "{session}"
+    ],
+    "systemPrompt": [
+      "--append-system-prompt",
+      "{text}"
+    ],
+    "mcpConfig": [
+      "--mcp-config",
+      "{file}"
+    ],
+    "settings": [
+      "--settings",
+      "{json}"
+    ]
+  },
+  "codex": {
+    "bin": "codex",
+    "base": [
+      "exec",
+      "--json",
+      "--skip-git-repo-check"
+    ],
+    "normal": [
+      "--sandbox",
+      "workspace-write"
+    ],
+    "readOnly": [
+      "--sandbox",
+      "read-only"
+    ],
+    "danger": [
+      "--dangerously-bypass-approvals-and-sandbox"
+    ],
+    "resume": [
+      "resume",
+      "{session}"
+    ]
+  },
+  "gemini": {
+    "bin": "gemini",
+    "base": [],
+    "normal": [],
+    "readOnly": null,
+    "danger": [
+      "--yolo"
+    ],
+    "resume": null,
+    "output": "text"
+  }
+}

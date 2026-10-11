@@ -1,0 +1,59 @@
+{
+  "name": "bancada",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Painel para orquestrar Claude Code, Codex e Gemini CLI em vários servidores via SSH, com contas, papéis, aprovações e auditoria.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js",
+    "create-admin": "node scripts/create-admin.js",
+    "app": "electron .",
+    "dist:mac": "electron-builder --mac dmg --arm64 --x64 --publish never"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "ssh2": "1.16.0",
+    "ws": "8.18.0",
+    "web-push": "3.6.7"
+  },
+  "main": "electron/main.js",
+  "author": "Play Tecnologia",
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "br.com.playtecnologia.bancada",
+    "productName": "Bancada",
+    "copyright": "Play Tecnologia",
+    "files": [
+      "src/**",
+      "web/**",
+      "config/**",
+      "remote/**",
+      "scripts/**",
+      "electron/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "identity": "-"
+    },
+    "dmg": {
+      "title": "Bancada",
+      "artifactName": "Bancada-${version}-${arch}.dmg"
+    }
+  }
+}
