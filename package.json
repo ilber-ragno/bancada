@@ -1,6 +1,6 @@
 {
   "name": "bancada",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Painel para orquestrar Claude Code, Codex e Gemini CLI em vários servidores via SSH, com contas, papéis, aprovações e auditoria.",
   "type": "module",
@@ -13,7 +13,8 @@
     "test": "node --test test/*.test.js",
     "create-admin": "node scripts/create-admin.js",
     "app": "electron .",
-    "dist:mac": "electron-builder --mac dmg --arm64 --x64 --publish never"
+    "dist:mac": "electron-builder --mac dmg --arm64 --x64 --publish never",
+    "predist:mac": "node scripts/icons.js"
   },
   "dependencies": {
     "express": "4.21.2",
@@ -38,6 +39,7 @@
       "remote/**",
       "scripts/**",
       "electron/**",
+      "assets/**",
       "package.json"
     ],
     "directories": {
@@ -49,11 +51,13 @@
       ],
       "category": "public.app-category.developer-tools",
       "hardenedRuntime": true,
-      "identity": "-"
+      "identity": "-",
+      "icon": "build/icon.png"
     },
     "dmg": {
       "title": "Bancada",
       "artifactName": "Bancada-${version}-${arch}.dmg"
     }
-  }
+  },
+  "productName": "Bancada"
 }

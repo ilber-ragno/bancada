@@ -10,11 +10,13 @@ import crypto from 'node:crypto';
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
-const freePort = () => new Promise((resolve, reject) => {
+// Usa a porta 8787 quando livre (fixa, para o acesso pelo iPad); se estiver ocupada, pega outra
+const tryPort = (p) => new Promise((resolve, reject) => {
   const s = net.createServer();
-  s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); });
-  s.on('error', reject);
+  s.once('error', reject);
+  s.listen(p, '127.0.0.1', () => { const { port } = s.address(); s.close(() => resolve(port)); });
 });
+const freePort = () => tryPort(8787).catch(() => tryPort(0));
 
 function vaultKey(dir) {
   const file = path.join(dir, 'cofre.key');
@@ -72,7 +74,24 @@ app.whenReady().then(async () => {
     { role: 'appMenu' }, { role: 'editMenu' },
     { label: 'Exibir', submenu: [{ role: 'reload', label: 'Recarregar' }, { role: 'togglefullscreen', label: 'Tela cheia' }, { type: 'separator' }, { role: 'zoomIn', label: 'Aumentar' }, { role: 'zoomOut', label: 'Diminuir' }, { role: 'resetZoom', label: 'Tamanho real' }] },
     { role: 'windowMenu' },
+    { label: 'Ajuda', submenu: [{ label: 'Usar no iPad', click: () => ipadHelp(port) }] },
   ]));
 });
+
+function ipadHelp(port) {
+  dialog.showMessageBox(win, {
+    type: 'info', title: 'Usar a Bancada no iPad', buttons: ['Entendi'],
+    message: 'Instale a Bancada no iPad pela tela inicial',
+    detail: [
+      '1. Instale o Tailscale no Mac e no iPad, com a mesma conta.',
+      `2. No Terminal do Mac, rode: tailscale serve --bg ${port}`,
+      '3. No iPad, abra no Safari o endereço https que o comando mostrar.',
+      '4. Toque em Compartilhar e depois em "Adicionar à Tela de Início".',
+      '',
+      'O acesso fica restrito aos seus aparelhos no Tailscale, com HTTPS. O Mac precisa estar ligado e com a Bancada aberta.',
+      port !== 8787 ? `\nAtenção: a porta 8787 estava ocupada; a Bancada está usando ${port}.` : '',
+    ].join('\n'),
+  });
+}
 
 app.on('window-all-closed', () => app.quit());

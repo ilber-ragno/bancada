@@ -3,3 +3,6 @@ data/
 .env
 *.log
 .DS_Store
+build/
+web/icons/
+dist/
