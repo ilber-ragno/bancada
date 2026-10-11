@@ -15,10 +15,15 @@ const sec = () => ({ sessionHours: 12, idleMinutes: 30, require2fa: true, passwo
 const readSid = (req) => (/(?:^|;\s*)bancada=([a-f0-9]{64})/.exec(req.headers.cookie || '') || [])[1];
 const cookie = (sid, maxAge) => `bancada=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${cfg.secureCookie ? '; Secure' : ''}`;
 
+// Atrás de um proxy local (Tailscale Serve, nginx), vale o host que o navegador usou
+const fromLoopback = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket?.remoteAddress);
 export function sameOrigin(req) {
   const origin = req.headers.origin;
   if (!origin) return req.method === 'GET';
-  try { return new URL(origin).host === req.headers.host; } catch { return false; }
+  let host;
+  try { host = new URL(origin).host; } catch { return false; }
+  if (host === req.headers.host) return true;
+  return fromLoopback(req) && !!req.headers['x-forwarded-host'] && host === String(req.headers['x-forwarded-host']).split(',')[0].trim();
 }
 
 function newSession(res, user, extra = {}) {
@@ -169,7 +174,8 @@ export function acceptInvite(req, res) {
 }
 
 // Primeiro acesso: sem nenhuma conta, quem está na própria máquina cria o administrador.
-const isLocal = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+// Pedido vindo por proxy (outro aparelho) não conta como local, mesmo chegando por 127.0.0.1
+const isLocal = (req) => fromLoopback(req) && !req.headers['x-forwarded-for'] && !req.headers['x-forwarded-host'];
 export function setupPage(req, res, error = '', values = {}) {
   if (hasUsers()) return res.redirect('/login');
   if (!isLocal(req)) return res.status(403).send(page('Bancada', '<h1>Configuração inicial</h1><p>Por segurança, o primeiro administrador só pode ser criado na própria máquina onde a Bancada roda.</p>'));
