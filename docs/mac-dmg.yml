@@ -1,0 +1,36 @@
+name: App para macOS (DMG)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  dmg:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar dependências
+        run: npm install --no-audit --no-fund
+      - name: Testes
+        run: npm test
+      - name: Gerar DMG (Apple Silicon e Intel)
+        run: npx electron-builder --mac dmg --arm64 --x64 --publish never
+        env:
+          # Para assinar e notarizar, cadastre CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID,
+          # APPLE_APP_SPECIFIC_PASSWORD e APPLE_TEAM_ID nos secrets do repositório.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Bancada-macOS
+          path: dist/*.dmg
+          retention-days: 30
