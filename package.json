@@ -17,10 +17,11 @@
     "predist:mac": "node scripts/icons.js"
   },
   "dependencies": {
+    "@simplewebauthn/server": "13.3.3",
     "express": "4.21.2",
     "ssh2": "1.16.0",
-    "ws": "8.18.0",
-    "web-push": "3.6.7"
+    "web-push": "3.6.7",
+    "ws": "8.18.0"
   },
   "main": "electron/main.js",
   "author": "Play Tecnologia",

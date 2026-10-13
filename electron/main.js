@@ -1,7 +1,8 @@
 // App da Bancada para macOS: sobe o servidor localmente e abre a tela numa janela.
 // Os dados ficam em ~/Library/Application Support/Bancada/dados e a chave do cofre fica
 // protegida pelo Keychain do macOS (safeStorage).
-import { app, BrowserWindow, shell, safeStorage, dialog, Menu } from 'electron';
+import { app, BrowserWindow, shell, safeStorage, dialog, Menu, ipcMain, systemPreferences } from 'electron';
+import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -45,7 +46,9 @@ app.whenReady().then(async () => {
   const dataDir = path.join(app.getPath('userData'), 'dados');
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const port = await freePort();
-  Object.assign(process.env, { HOST: '127.0.0.1', PORT: String(port), DATA_DIR: dataDir, BANCADA_SECRET_KEY: vaultKey(dataDir) });
+  // Token só deste processo: autoriza o login por Touch ID nativo (a página não tem acesso a ele)
+  const appToken = crypto.randomBytes(32).toString('hex');
+  Object.assign(process.env, { HOST: '127.0.0.1', PORT: String(port), DATA_DIR: dataDir, BANCADA_SECRET_KEY: vaultKey(dataDir), BANCADA_APP_TOKEN: appToken });
   if (!process.env.SSH_AUTH_SOCK && !process.env.SSH_KEY_PATH) {
     for (const k of ['id_ed25519', 'id_ecdsa', 'id_rsa']) {
       const p = path.join(os.homedir(), '.ssh', k);
@@ -63,20 +66,59 @@ app.whenReady().then(async () => {
   const base = `http://127.0.0.1:${port}`;
   win = new BrowserWindow({
     width: 1440, height: 900, minWidth: 900, minHeight: 600, title: 'Bancada', backgroundColor: '#FAFAFA', show: false,
-    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false },
+    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false, preload: path.join(path.dirname(fileURLToPath(import.meta.url)), 'preload.cjs') },
   });
+  setupTouchId(base, appToken);
   // Links externos abrem no navegador do Mac; a janela só navega dentro da própria Bancada
   win.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:\/\//.test(url)) shell.openExternal(url); return { action: 'deny' }; });
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith(base)) { e.preventDefault(); if (/^https?:\/\//.test(url)) shell.openExternal(url); } });
   win.once('ready-to-show', () => win.show());
   win.loadURL(base + '/');
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    { role: 'appMenu' }, { role: 'editMenu' },
+    { role: 'appMenu' },
+    { label: 'Arquivo', submenu: [{ label: 'Novo projeto…', accelerator: 'CmdOrCtrl+Shift+N', click: () => win && win.loadURL(base + '/wizard') }, { label: 'Minha conta', click: () => win && win.loadURL(base + '/account') }] },
+    { role: 'editMenu' },
     { label: 'Exibir', submenu: [{ role: 'reload', label: 'Recarregar' }, { role: 'togglefullscreen', label: 'Tela cheia' }, { type: 'separator' }, { role: 'zoomIn', label: 'Aumentar' }, { role: 'zoomOut', label: 'Diminuir' }, { role: 'resetZoom', label: 'Tamanho real' }] },
     { role: 'windowMenu' },
     { label: 'Ajuda', submenu: [{ label: 'Usar no iPad', click: () => ipadHelp(port) }] },
   ]));
 });
+
+// Touch ID nativo do macOS. O Chromium do Electron não oferece o Touch ID para passkeys sem
+// assinatura da Apple, então o app pede a digital ao macOS e só então pede ao servidor local
+// um código de uso único (30 s) para abrir a sessão.
+function setupTouchId(base, appToken) {
+  const fromApp = (e) => e.senderFrame && e.senderFrame.url.startsWith(base);
+  const call = async (route, body, cookie) => {
+    const r = await fetch(base + route, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-bancada-app': appToken, ...(cookie ? { cookie } : {}) }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Não foi possível usar o Touch ID.');
+    return j;
+  };
+  const prompt = async (reason) => {
+    try { await systemPreferences.promptTouchID(reason); return true; } catch { return false; }
+  };
+  ipcMain.handle('touchid:can', () => process.platform === 'darwin' && systemPreferences.canPromptTouchID());
+  ipcMain.handle('touchid:login', async (e, login) => {
+    if (!fromApp(e)) return { error: 'Origem inválida' };
+    if (!(await prompt('entrar na Bancada'))) return { error: 'Touch ID cancelado.' };
+    try {
+      const { code } = await call('/app/touchid/login', { login });
+      await win.loadURL(base + '/app/touchid/finish?code=' + encodeURIComponent(code));
+      return { ok: true };
+    } catch (err) { return { error: err.message }; }
+  });
+  ipcMain.handle('touchid:enable', async (e, on) => {
+    if (!fromApp(e)) return { error: 'Origem inválida' };
+    if (on && !(await prompt('ativar o Touch ID na Bancada'))) return { error: 'Touch ID cancelado.' };
+    try {
+      const cookies = await win.webContents.session.cookies.get({ url: base, name: 'bancada' });
+      if (!cookies.length) return { error: 'Entre na sua conta primeiro.' };
+      await call('/app/touchid/enable', { on }, `bancada=${cookies[0].value}`);
+      return { ok: true };
+    } catch (err) { return { error: err.message }; }
+  });
+}
 
 function ipadHelp(port) {
   dialog.showMessageBox(win, {
