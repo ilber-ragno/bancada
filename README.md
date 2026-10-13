@@ -8,6 +8,14 @@ A Bancada **não usa chave de API nem reaproveita o login dos CLIs**. Ela entra 
 
 ## Recursos
 
+**Assistente de projetos** (`/wizard`, ou Arquivo › Novo projeto no app do Mac)
+- Passo a passo com tutorial ao lado: servidor por SSH, ferramentas, repositório, ambiente e pessoas.
+- Testa a conexão e mostra a impressão digital da chave do servidor para você confirmar antes de confiar.
+- Se o servidor recusar a chave, mostra a chave pública desta máquina e o comando para colar no servidor.
+- Confere git, tmux, python3, Node, Claude Code, Codex, Gemini e GitHub CLI (instalados e logados), com o comando para corrigir o que faltar.
+- Encontra os repositórios Git no servidor ou clona um novo.
+- Abre sozinho na primeira vez, quando ainda não há projetos.
+
 **Barra da área de trabalho**
 - **Terminal**: novo agente Claude Code, Codex ou Gemini CLI, ou um terminal comum no servidor.
 - **Nota**: anotações e instruções que os agentes ligados leem.
@@ -45,6 +53,8 @@ A Bancada **não usa chave de API nem reaproveita o login dos CLIs**. Ela entra 
 
 **Segurança e acesso** (detalhes em [docs/SEGURANCA.md](docs/SEGURANCA.md))
 - Login individual com senha forte e aplicativo autenticador (2FA).
+- **Entrar sem senha com passkey** (Touch ID no Mac, Face ID no iPhone e iPad): cadastre em Minha conta. Funciona por `localhost` ou pelo endereço https do Tailscale; não funciona pelo IP (`127.0.0.1`).
+- **Touch ID no app do Mac**: ative em Minha conta; o app pede a digital ao macOS e abre a sessão sem senha.
 - Papéis (administrador, líder técnico, desenvolvedor, somente leitura), projetos liberados por pessoa e exceções de permissão.
 - Aprovação de ações arriscadas, com quatro olhos em produção.
 - Produção somente leitura, modo danger bloqueado em produção, mascaramento de dados sensíveis.
