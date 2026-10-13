@@ -159,3 +159,14 @@ export function authenticate(login, password, code, require2fa) {
 }
 
 export const hasUsers = () => users.length > 0;
+
+// Usado pelas passkeys e pelo assistente de projetos
+export const saveUsers = () => persist();
+
+// Dar acesso a um projeto novo não derruba as sessões da pessoa (só ampliar acesso)
+export function grantProject(userId, projectId) {
+  const u = findUser(userId);
+  if (!u || u.projects === '*') return;
+  if (!Array.isArray(u.projects)) u.projects = [];
+  if (!u.projects.includes(projectId)) { u.projects.push(projectId); persist(); }
+}
