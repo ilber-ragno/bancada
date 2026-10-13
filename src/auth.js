@@ -7,26 +7,30 @@ import { authenticate, findUser, findLogin, changePassword, setTotp, totpSecretO
 import { findByToken, markUsed } from './invites.js';
 import { audit } from './store.js';
 import { newSecret, verify as verifyTotp, otpauthUri } from './totp.js';
+import { loginExtras, accountExtras } from './passkey-ui.js';
 
 const sessions = new Map(); // sid -> { userId, epoch, created, lastSeen, setup, pending2fa }
 const ipFails = new Map();
 
-const sec = () => ({ sessionHours: 12, idleMinutes: 30, require2fa: true, passwordMin: 12, ...(getDoc().security || {}) });
+export const sec = () => ({ sessionHours: 12, idleMinutes: 30, require2fa: true, passwordMin: 12, ...(getDoc().security || {}) });
 const readSid = (req) => (/(?:^|;\s*)bancada=([a-f0-9]{64})/.exec(req.headers.cookie || '') || [])[1];
 const cookie = (sid, maxAge) => `bancada=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${cfg.secureCookie ? '; Secure' : ''}`;
 
 // Atrás de um proxy local (Tailscale Serve, nginx), vale o host que o navegador usou
 const fromLoopback = (req) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket?.remoteAddress);
-export function sameOrigin(req) {
-  const origin = req.headers.origin;
-  if (!origin) return req.method === 'GET';
+// method: no upgrade do WebSocket, quem chama informa o método a considerar.
+// (Não copie o req com spread: headers é getter do IncomingMessage e some na cópia.)
+export function sameOrigin(req, method = req.method) {
+  const headers = req?.headers || {};
+  const origin = headers.origin;
+  if (!origin) return method === 'GET';
   let host;
   try { host = new URL(origin).host; } catch { return false; }
-  if (host === req.headers.host) return true;
-  return fromLoopback(req) && !!req.headers['x-forwarded-host'] && host === String(req.headers['x-forwarded-host']).split(',')[0].trim();
+  if (host === headers.host) return true;
+  return fromLoopback(req) && !!headers['x-forwarded-host'] && host === String(headers['x-forwarded-host']).split(',')[0].trim();
 }
 
-function newSession(res, user, extra = {}) {
+export function newSession(res, user, extra = {}) {
   const sid = crypto.randomBytes(32).toString('hex');
   sessions.set(sid, { userId: user.id, epoch: user.sessionEpoch || 1, created: Date.now(), lastSeen: Date.now(), ...extra });
   res.setHeader('Set-Cookie', cookie(sid, sec().sessionHours * 3600));
@@ -65,7 +69,7 @@ export function loginPage(error = '', login = '', needCode = false) {
 <label>Login<input name="login" autocomplete="username" required value="${esc(login)}" ${needCode ? '' : 'autofocus'}></label>
 <label>Senha<input type="password" name="password" autocomplete="current-password" required></label>
 ${needCode ? '<label>Código do autenticador<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" autofocus required></label>' : ''}
-${error ? `<p class="err" role="alert">${esc(error)}</p>` : ''}<button type="submit">Entrar</button></form>`);
+${error ? `<p class="err" role="alert">${esc(error)}</p>` : ''}<button type="submit">Entrar</button></form>${needCode ? '' : loginExtras()}`);
 }
 
 export function login(req, res) {
@@ -111,7 +115,8 @@ ${u.totp && !draft ? '<p>Para trocar de aparelho, gere uma nova chave.</p><input
 <p>No Google Authenticator, Microsoft Authenticator ou similar, adicione a chave abaixo (ou abra o link no celular) e digite o código de 6 dígitos.</p>
 <code>${esc(draft.match(/.{1,4}/g).join(' '))}</code><a href="${esc(otpauthUri(draft, u.login))}">Abrir no aplicativo autenticador</a>
 <input type="hidden" name="action" value="confirm"><label>Código<input name="code" inputmode="numeric" autocomplete="one-time-code" required></label><button type="submit">Ativar autenticador</button>`}</form>
-${s.setup ? '' : '<p><a href="/">Voltar para a Bancada</a></p>'}
+${s.setup ? '' : accountExtras(u)}
+${s.setup ? '' : '<p><a href="/wizard">Novo projeto (assistente)</a> · <a href="/?assistente=0">Voltar para a Bancada</a></p>'}
 <form method="post" action="/logout"><button type="submit" style="background:#fff;color:#171717;border:1px solid #E5E5E5">Sair</button></form>`));
 }
 
@@ -150,7 +155,7 @@ export function invitePage(req, res, error = '', values = {}) {
   res.send(page('Convite para a Bancada', `<h1>Criar seu acesso</h1><p>Convite de ${esc(inv.createdByName)}.</p>
 <form method="post" style="display:flex;flex-direction:column;gap:14px">
 <label>Nome completo<input name="name" required maxlength="80" value="${esc(values.name)}"></label>
-<label>Login (letras minúsculas, números, ponto ou hífen)<input name="login" required pattern="[a-z0-9._-]{3,32}" autocapitalize="off" value="${esc(values.login)}"></label>
+<label>Login (letras minúsculas, números, ponto ou hífen)<input name="login" required pattern="[a-z0-9._\\-]{3,32}" autocapitalize="off" value="${esc(values.login)}"></label>
 <label>Senha (mínimo ${Math.max(12, sec().passwordMin)} caracteres)<input type="password" name="password" required minlength="12" autocomplete="new-password"></label>
 ${error ? `<p class="err" role="alert">${esc(error)}</p>` : ''}<button type="submit">Criar acesso</button></form>`));
 }
@@ -182,7 +187,7 @@ export function setupPage(req, res, error = '', values = {}) {
   res.send(page('Bem-vindo à Bancada', `<h1>Bem-vindo à Bancada</h1><p>Crie a conta de administrador. É por ela que você vai cadastrar e convidar as outras pessoas.</p>
 <form method="post" action="/setup" style="display:flex;flex-direction:column;gap:14px">
 <label>Nome completo<input name="name" required maxlength="80" value="${esc(values.name)}" autofocus></label>
-<label>Login<input name="login" required pattern="[a-z0-9._-]{3,32}" autocapitalize="off" value="${esc(values.login)}"></label>
+<label>Login<input name="login" required pattern="[a-z0-9._\\-]{3,32}" autocapitalize="off" value="${esc(values.login)}"></label>
 <label>Senha (mínimo 12 caracteres)<input type="password" name="password" required minlength="12" autocomplete="new-password"></label>
 ${error ? `<p class="err" role="alert">${esc(error)}</p>` : ''}<button type="submit">Criar administrador</button></form>`));
 }
@@ -197,6 +202,3 @@ export function setupSubmit(req, res) {
     res.redirect('/account');
   } catch (e) { setupPage(req, res, e.message, { name, login: lg }); }
 }
-
-export const _sessions = sessions;
-export { totpSecretOf };
