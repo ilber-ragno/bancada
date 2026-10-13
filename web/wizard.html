@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Novo projeto · Bancada</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+:root{--bg:#FAFAFA;--card:#fff;--ink:#171717;--ink2:#525252;--mute:#737373;--line:#E5E5E5;--soft:#F5F5F5;--ok:#15803D;--okbg:#F0FDF4;--warn:#B45309;--warnbg:#FFFBEB;--bad:#DC2626;--badbg:#FEF2F2;--acc:#2563EB;--accbg:#EFF6FF}
+@media (prefers-color-scheme:dark){:root{--bg:#0A0A0A;--card:#171717;--ink:#FAFAFA;--ink2:#D4D4D4;--mute:#A3A3A3;--line:#2A2A2A;--soft:#222;--okbg:#052E16;--ok:#4ADE80;--warnbg:#2A1E05;--warn:#FBBF24;--badbg:#2A0A0A;--bad:#F87171;--accbg:#0B1A33;--acc:#60A5FA;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,sans-serif;padding:max(16px,env(safe-area-inset-top)) 16px 32px}
+a{color:inherit}
+.shell{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:220px minmax(0,1fr) 300px;gap:20px;align-items:start}
+@media (max-width:1000px){.shell{grid-template-columns:minmax(0,1fr)}.steps{display:none!important}.mobilebar{display:flex!important}.help{order:3}}
+header{max-width:1120px;margin:0 auto 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h1{font-size:20px;margin:0}
+header a{font-size:14px;color:var(--mute);text-decoration:none}
+.steps{display:flex;flex-direction:column;gap:4px;position:sticky;top:16px}
+.step{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:12px;color:var(--mute);font-size:14px;border:0;background:none;text-align:left;font:inherit;cursor:default}
+.step .n{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:600;flex:none}
+.step.on{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.step.on .n{border-color:var(--ink);background:var(--ink);color:var(--card)}
+.step.done{color:var(--ink2);cursor:pointer}.step.done .n{border-color:var(--ok);color:var(--ok)}
+.mobilebar{display:none;gap:6px;margin-bottom:4px}.mobilebar i{flex:1;height:4px;border-radius:4px;background:var(--line)}.mobilebar i.on{background:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.card h2{margin:0;font-size:21px;text-wrap:balance}
+.lead{margin:0;color:var(--ink2)}
+label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:500}
+input[type=text],input:not([type]),select{padding:11px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;background:var(--card);color:var(--ink);width:100%}
+input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.hint{font-size:13px;color:var(--mute);font-weight:400}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{padding:11px 16px;border:0;border-radius:12px;background:var(--ink);color:var(--card);font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:500}
+button.link{background:none;color:var(--mute);padding:6px;font-weight:500;text-decoration:underline}
+button:disabled{opacity:.45;cursor:not-allowed}
+.nav{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:16px;margin-top:4px}
+.box{border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.box.ok{background:var(--okbg);color:var(--ok)}.box.warn{background:var(--warnbg);color:var(--warn)}.box.bad{background:var(--badbg);color:var(--bad)}.box.info{background:var(--accbg);color:var(--acc)}
+.box b{color:inherit}.box p{margin:0;color:var(--ink2)}
+pre,code{font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+.cmd{display:flex;gap:8px;align-items:stretch;background:var(--soft);border-radius:10px;padding:4px 4px 4px 12px;min-width:0}
+.cmd code{flex:1;min-width:0;overflow-x:auto;white-space:pre;padding:8px 0;color:var(--ink)}
+.cmd button{padding:6px 10px;font-size:13px;font-weight:500;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.item{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start;padding:12px 14px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item .t{font-weight:600}.item .d{font-size:13px;color:var(--mute)}
+.dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;margin-top:1px}
+.dot.ok{background:var(--okbg);color:var(--ok)}.dot.bad{background:var(--badbg);color:var(--bad)}.dot.warn{background:var(--warnbg);color:var(--warn)}.dot.off{background:var(--soft);color:var(--mute)}
+.pill{font-size:12px;padding:2px 8px;border-radius:20px;background:var(--soft);color:var(--ink2);white-space:nowrap}
+.repos{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.repo{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--card);color:var(--ink);text-align:left;font-weight:400;display:flex;flex-direction:column;gap:4px}
+.repo.sel{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.repo .t{font-weight:600}.repo .d{font-size:12px;color:var(--mute);word-break:break-all}
+.tabs{display:flex;gap:4px;background:var(--soft);padding:4px;border-radius:12px;width:fit-content}
+.tabs button{background:none;color:var(--ink2);font-weight:500;padding:8px 14px}
+.tabs button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.choice{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:row;align-items:flex-start;gap:10px;cursor:pointer;font-weight:400}
+.choice:has(input:checked){border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.choice input{margin-top:3px}.choice b{display:block}.choice span{font-size:13px;color:var(--mute)}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.person{display:flex;flex-direction:row;gap:8px;align-items:center;font-weight:400;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.colors{display:flex;gap:8px;flex-wrap:wrap}.colors button{width:30px;height:30px;border-radius:50%;padding:0;border:2px solid transparent}.colors button.on{border-color:var(--ink);outline:2px solid var(--card);outline-offset:-4px}
+.summary{display:grid;grid-template-columns:140px minmax(0,1fr);gap:8px 14px;font-size:14px}.summary dt{color:var(--mute)}.summary dd{margin:0;word-break:break-word}
+.help{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px;position:sticky;top:16px}
+.help h3{margin:0;font-size:15px}.help p,.help li{font-size:14px;color:var(--ink2);margin:0}.help ol,.help ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.help .tag{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.spinner{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;animation:spin .8s linear infinite;vertical-align:-3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+.big{font-size:44px;line-height:1}
+.tour{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tour div{background:var(--soft);border-radius:14px;padding:12px;font-size:14px}.tour b{display:block;margin-bottom:2px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><h1>Novo projeto</h1><a href="/?assistente=0">Voltar para a Bancada</a></header>
+<div class="shell">
+  <nav class="steps" id="steps" aria-label="Etapas"></nav>
+  <main>
+    <div class="mobilebar" id="mobilebar" aria-hidden="true"></div>
+    <section class="card" id="view" aria-live="polite"></section>
+  </main>
+  <aside class="help" id="help"></aside>
+</div>
+<script>
+const STEPS = ['Começo', 'Servidor', 'Ferramentas', 'Repositório', 'Detalhes', 'Revisar'];
+const S = { step: 0, server: '', ssh: null, trusted: false, tools: null, repoMode: 'existing', base: '~', repos: null, repo: null, path: '', cloneUrl: '', cloneDest: '', name: '', env: 'dev', collab: true, color: '', people: [], created: null };
+let boot = { ssh: { keys: [] }, servers: [], people: [], me: {} };
+const COLORS = ['#2563EB', '#16A34A', '#9333EA', '#EA580C', '#DB2777', '#0891B2', '#CA8A04', '#4F46E5'];
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const save = () => { try { sessionStorage.setItem('bancada-wizard', JSON.stringify({ ...S, tools: null, repos: null })); } catch {} };
+const load = () => { try { Object.assign(S, JSON.parse(sessionStorage.getItem('bancada-wizard') || '{}')); } catch {} };
+async function api(url, body) {
+  const r = await fetch(url, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 401) { location.href = '/login'; throw new Error('Sessão expirada'); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'Algo deu errado. Tente de novo.');
+  return j;
+}
+const cmd = (text) => `<div class="cmd"><code>${esc(text)}</code><button type="button" data-copy="${esc(text)}">Copiar</button></div>`;
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-copy]');
+  if (!b) return;
+  try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copiado'; setTimeout(() => (b.textContent = 'Copiar'), 1500); }
+  catch { const c = b.previousElementSibling; const r = document.createRange(); r.selectNodeContents(c); getSelection().removeAllRanges(); getSelection().addRange(r); }
+});
+const busy = (btn, on, label) => { if (!btn) return; btn.disabled = on; if (on) { btn.dataset.l = btn.innerHTML; btn.innerHTML = `<span class="spinner"></span> ${label || 'Aguarde'}`; } else if (btn.dataset.l) btn.innerHTML = btn.dataset.l; };
+const repoName = (u) => (String(u).split(/[/:]/).pop() || '').replace(/\.git$/, '');
+
+// ---------- Tutorial (painel lateral) ----------
+const HELP = [
+  `<span class="tag">Tutorial</span><h3>Como funciona</h3><p>Um projeto na Bancada é uma pasta com Git num servidor. Os agentes (Claude Code, Codex, Gemini) rodam lá, com o login que já existe no servidor.</p><ol><li>Você diz qual servidor.</li><li>A Bancada confere se tem tudo instalado.</li><li>Você escolhe ou clona o repositório.</li><li>Define ambiente e quem acessa.</li></ol><p>Nada é instalado ou alterado sem você pedir.</p>`,
+  `<span class="tag">Passo 1</span><h3>Conectar ao servidor</h3><p>Digite no formato <b>usuário@endereço</b>. Exemplos:</p><ul><li><code>dev@192.168.0.20</code></li><li><code>ubuntu@vps.playti.tech</code></li><li><code>deploy@servidor:2222</code> (porta diferente)</li></ul><p>A Bancada entra com a chave SSH desta máquina. Se o servidor recusar, mostramos a chave para você colar no servidor.</p><p><b>Dica:</b> use um usuário só para a Bancada em cada servidor. Quem acessa esse usuário usa as contas de IA logadas nele.</p>`,
+  `<span class="tag">Passo 2</span><h3>Ferramentas no servidor</h3><p><b>Obrigatórias:</b> git, tmux e python3.</p><p><b>Pelo menos um agente</b> instalado e logado: Claude Code, Codex ou Gemini.</p><p>Para logar, entre no servidor pelo Terminal (<code>ssh usuário@servidor</code>), rode o comando indicado e volte aqui para verificar de novo.</p><p>O GitHub CLI (gh) é opcional: só serve para abrir pull request pela tela.</p>`,
+  `<span class="tag">Passo 3</span><h3>Repositório</h3><p><b>Pasta existente:</b> procuramos repositórios Git dentro da pasta que você indicar (até 4 níveis).</p><p><b>Clonar:</b> o servidor baixa o repositório. Para repositório privado, o servidor precisa de acesso ao GitHub (<code>gh auth login</code> ou deploy key).</p><p>Cada janela de agente trabalha numa cópia própria (worktree), sem mexer na pasta principal.</p>`,
+  `<span class="tag">Passo 4</span><h3>Ambiente e acesso</h3><ul><li><b>Desenvolvimento:</b> agentes podem editar à vontade.</li><li><b>Homologação:</b> igual a dev, separado para organizar.</li><li><b>Produção:</b> agentes só leem; ações arriscadas pedem aprovação de outra pessoa (quatro olhos).</li></ul><p><b>Colaborativo:</b> todos do projeto veem e usam os agentes. <b>Individual:</b> cada pessoa vê só os seus.</p>`,
+  `<span class="tag">Passo 5</span><h3>Depois de criar</h3><ol><li>Na Bancada, clique em <b>Terminal</b> e escolha o agente.</li><li>Dê um nome e escreva a primeira tarefa.</li><li>Use <b>Nota</b> para instruções que todo agente do projeto deve ler.</li><li>Antes de commitar, revise o diff na própria janela.</li></ol>`,
+];
+
+// ---------- Telas ----------
+function render() {
+  save();
+  $('#steps').innerHTML = STEPS.map((s, i) => `<button type="button" class="step ${i === S.step ? 'on' : i < S.step ? 'done' : ''}" data-go="${i}" ${i < S.step ? '' : 'disabled'} aria-current="${i === S.step ? 'step' : 'false'}"><span class="n">${i < S.step ? '✓' : i + 1}</span>${s}</button>`).join('');
+  $('#mobilebar').innerHTML = STEPS.map((s, i) => `<i class="${i <= S.step ? 'on' : ''}"></i>`).join('');
+  $('#help').innerHTML = HELP[Math.min(S.step, HELP.length - 1)];
+  const v = $('#view');
+  v.innerHTML = [welcome, serverStep, toolsStep, repoStep, detailsStep, reviewStep][S.step]();
+  ({ 1: bindServer, 2: bindTools, 3: bindRepo, 4: bindDetails, 5: bindReview }[S.step] || (() => {}))();
+  v.querySelector('[data-next]')?.addEventListener('click', () => go(S.step + 1));
+  v.querySelector('[data-back]')?.addEventListener('click', () => go(S.step - 1));
+  v.querySelector('h2')?.setAttribute('tabindex', '-1');
+}
+const go = (n) => { S.step = Math.max(0, Math.min(STEPS.length - 1, n)); render(); $('#view h2')?.focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+$('#steps').addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b && !b.disabled) go(+b.dataset.go); });
+const nav = (nextOk = true, nextLabel = 'Continuar') => `<div class="nav">${S.step > 0 ? '<button type="button" class="ghost" data-back>Voltar</button>' : '<span></span>'}<button type="button" data-next ${nextOk ? '' : 'disabled'}>${nextLabel}</button></div>`;
+
+function welcome() {
+  return `<h2>Vamos colocar um projeto na Bancada</h2>
+<p class="lead">Leva uns 3 minutos. No fim, você abre agentes do Claude Code, Codex ou Gemini trabalhando nesse projeto.</p>
+<div class="tour"><div><b>1. Servidor</b>Onde o código está</div><div><b>2. Ferramentas</b>Conferimos o que falta</div><div><b>3. Repositório</b>Pasta existente ou clone</div><div><b>4. Acesso</b>Ambiente e pessoas</div></div>
+<div class="box info"><b>Antes de começar, tenha em mãos</b><p>O endereço do servidor e o usuário SSH. Se for um servidor novo, você vai precisar entrar nele uma vez pelo Terminal para colar a chave e logar os agentes.</p></div>
+${nav(true, 'Começar')}`;
+}
+
+function serverStep() {
+  const r = S.ssh;
+  let result = '';
+  if (r && r.ok && (r.known || S.trusted)) {
+    result = `<div class="box ok"><b>Conectado</b><p>${esc(r.info?.user || '')}@${esc(r.info?.host || '')} · ${esc(r.info?.system || '')}</p></div>`;
+  } else if (r && r.ok) {
+    result = `<div class="box warn"><b>Confirme que é o servidor certo</b>
+<p>É a primeira conexão com este servidor. A impressão digital da chave dele é:</p>${cmd(r.fingerprint)}
+<p>Para conferir, rode no servidor e compare com a de cima:</p>${cmd('for f in /etc/ssh/ssh_host_*_key.pub; do ssh-keygen -lf "$f"; done')}
+<div class="row"><button type="button" id="trust">Confere, confiar neste servidor</button></div></div>`;
+  } else if (r && !r.ok) {
+    result = `<div class="box bad"><b>Não consegui conectar</b><p>${esc(r.message)}</p>${r.code === 'auth' && boot.ssh.keys.length ? `
+<p>Chave pública desta máquina${boot.ssh.source ? ` (${esc(boot.ssh.source)})` : ''}:</p>${cmd(boot.ssh.keys[0])}
+<p>Entre no servidor com o usuário <b>${esc((S.server.split('@')[0]) || '')}</b> e rode:</p>${cmd(`mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '${boot.ssh.keys[0]}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`)}` : ''}
+${r.code === 'nokey' ? `<p>No Terminal do Mac:</p>${cmd('ssh-keygen -t ed25519')}<p>Depois feche e abra a Bancada.</p>` : ''}</div>`;
+  }
+  const known = boot.servers.length ? `<div class="row"><span class="hint">Usados antes:</span>${boot.servers.map((s) => `<button type="button" class="ghost" data-srv="${esc(s)}" style="padding:6px 10px;font-size:13px">${esc(s)}</button>`).join('')}</div>` : '';
+  const ok = r && r.ok && (r.known || S.trusted) && r.target;
+  return `<h2>Qual servidor?</h2><p class="lead">A Bancada entra por SSH e roda os agentes lá.</p>
+<label>Usuário e endereço<input id="srv" value="${esc(S.server)}" placeholder="usuario@servidor.com" autocapitalize="off" autocomplete="off" spellcheck="false"><span class="hint">Formato usuário@endereço. Porta diferente de 22: usuário@endereço:2222</span></label>
+${known}
+<div class="row"><button type="button" id="test" class="ghost">Testar conexão</button></div>
+${result}${nav(!!ok)}`;
+}
+function bindServer() {
+  const inp = $('#srv');
+  const test = async () => {
+    S.server = inp.value.trim(); S.trusted = false; S.tools = null; S.repos = null;
+    if (!/^[^@\s]+@[^@\s]+$/.test(S.server)) { S.ssh = { ok: false, message: 'Use o formato usuário@endereço, por exemplo dev@192.168.0.20.' }; return render(); }
+    busy($('#test'), true, 'Testando');
+    try { S.ssh = await api('/api/wizard/ssh-test', { server: S.server }); } catch (e) { S.ssh = { ok: false, message: e.message }; }
+    render();
+  };
+  $('#test').onclick = test;
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') test(); });
+  document.querySelectorAll('[data-srv]').forEach((b) => (b.onclick = () => { inp.value = b.dataset.srv; test(); }));
+  $('#trust')?.addEventListener('click', async (e) => {
+    busy(e.target, true, 'Salvando');
+    try { await api('/api/wizard/ssh-trust', { server: S.server, fingerprint: S.ssh.fingerprint }); S.trusted = true; } catch (err) { S.ssh = { ok: false, message: err.message }; }
+    render();
+  });
+  if (!S.ssh) inp.focus();
+}
+
+function toolsStep() {
+  const t = S.tools;
+  if (!t) return `<h2>Conferindo o servidor</h2><p class="lead"><span class="spinner"></span> Verificando git, tmux, python3 e os agentes…</p>${nav(false)}`;
+  if (t.error) return `<h2>Conferindo o servidor</h2><div class="box bad"><b>Não consegui verificar</b><p>${esc(t.error)}</p></div><div class="row"><button type="button" class="ghost" id="recheck">Tentar de novo</button></div>${nav(false)}`;
+  const rows = t.items.map((i) => {
+    const st = !i.installed ? (i.required ? 'bad' : 'off') : i.loggedIn === false ? 'warn' : 'ok';
+    const icon = { ok: '✓', bad: '!', warn: '•', off: '–' }[st];
+    const status = !i.installed ? (i.required ? 'Falta instalar' : 'Não instalado') : i.loggedIn === false ? 'Instalado, sem login' : i.loggedIn ? 'Pronto e logado' : 'Instalado';
+    return `<div class="item"><span class="dot ${st}" aria-hidden="true">${icon}</span><div><div class="t">${esc(i.name)} ${i.required ? '<span class="pill">obrigatório</span>' : ''}</div><div class="d">${esc(i.about)}${i.version ? ` <span class="pill">${esc(i.version)}</span>` : ''}</div>${i.fix ? `<div style="margin-top:8px">${cmd(i.fix)}</div>` : ''}</div><span class="pill">${status}</span></div>`;
+  }).join('');
+  const msg = t.ready
+    ? `<div class="box ok"><b>Tudo certo para continuar</b><p>Agentes disponíveis: ${t.agents.map(esc).join(', ')}.</p></div>`
+    : t.missingRequired.length
+      ? `<div class="box bad"><b>Falta instalar: ${t.missingRequired.map(esc).join(', ')}</b><p>Rode os comandos indicados no servidor e clique em Verificar de novo.</p></div>`
+      : `<div class="box warn"><b>Nenhum agente logado ainda</b><p>Instale e faça login em pelo menos um: Claude Code, Codex ou Gemini.</p></div>`;
+  return `<h2>Ferramentas no servidor</h2><p class="lead">${esc(t.os?.name || '')} ${t.os?.arch ? '· ' + esc(t.os.arch) : ''}</p>
+${msg}<div class="list">${rows}</div>
+<div class="row"><button type="button" class="ghost" id="recheck">Verificar de novo</button><span class="hint">A verificação de login olha os arquivos de credencial; se algo parecer errado, abra o agente no servidor para confirmar.</span></div>
+${nav(t.ready || (!t.missingRequired.length && t.items.some((i) => ['claude', 'codex', 'gemini'].includes(i.name) && i.installed)), t.ready ? 'Continuar' : 'Continuar mesmo assim')}`;
+}
+let checking = false;
+function bindTools() {
+  const run = async () => {
+    if (checking) return;
+    checking = true; S.tools = null; render();
+    try { S.tools = await api('/api/wizard/tools', { server: S.server }); } catch (e) { S.tools = { error: e.message }; }
+    checking = false; render();
+  };
+  if (!S.tools && !checking) run();
+  $('#recheck')?.addEventListener('click', run);
+}
+
+function repoStep() {
+  const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-mode="existing" class="${S.repoMode === 'existing' ? 'on' : ''}">Pasta existente</button><button type="button" role="tab" data-mode="clone" class="${S.repoMode === 'clone' ? 'on' : ''}">Clonar do GitHub</button></div>`;
+  let body = '';
+  if (S.repoMode === 'existing') {
+    const list = S.repos === 'loading' ? '<p class="lead"><span class="spinner"></span> Procurando repositórios…</p>'
+      : Array.isArray(S.repos) ? (S.repos.length ? `<div class="repos">${S.repos.map((r, i) => `<button type="button" class="repo ${S.path === r.path ? 'sel' : ''}" data-repo="${i}"><span class="t">${esc(r.name)}</span><span class="d">${esc(r.path)}</span><span class="d">${r.branch ? 'branch ' + esc(r.branch) : ''}${r.changes ? ` · ${r.changes} alteração(ões) não commitada(s)` : ''}</span>${r.remote ? `<span class="d">${esc(r.remote)}</span>` : ''}</button>`).join('')}</div>` : '<div class="box warn"><b>Nenhum repositório Git encontrado nessa pasta</b><p>Tente outra pasta ou use "Clonar do GitHub".</p></div>')
+      : S.repos && S.repos.error ? `<div class="box bad"><b>Não consegui procurar</b><p>${esc(S.repos.error)}</p></div>` : '';
+    body = `<div class="row" style="align-items:flex-end"><label style="flex:1;min-width:200px">Procurar em<input id="base" value="${esc(S.base)}" autocapitalize="off" spellcheck="false"><span class="hint">~ é a pasta do usuário no servidor.</span></label><button type="button" class="ghost" id="search">Procurar</button></div>${list}
+<details><summary class="hint" style="cursor:pointer">Digitar o caminho manualmente</summary><label style="margin-top:10px">Caminho completo da pasta<input id="manual" value="${esc(S.repoMode === 'existing' && !S.repos?.some?.((r) => r.path === S.path) ? S.path : '')}" placeholder="/home/dev/meu-app" spellcheck="false"></label></details>`;
+  } else {
+    body = `<label>Endereço do repositório<input id="url" value="${esc(S.cloneUrl)}" placeholder="https://github.com/empresa/projeto" spellcheck="false" autocapitalize="off"></label>
+<label>Onde salvar no servidor<input id="dest" value="${esc(S.cloneDest)}" placeholder="~/projetos/projeto" spellcheck="false" autocapitalize="off"><span class="hint">A pasta não pode existir ainda.</span></label>
+<div class="row"><button type="button" id="clone">Clonar agora</button></div>
+${S.clone?.error ? `<div class="box bad"><b>O clone não funcionou</b><p>${esc(S.clone.error)}</p>${/gh auth login|deploy key/.test(S.clone.error) ? cmd('gh auth login') : ''}</div>` : ''}
+${S.clone?.path ? `<div class="box ok"><b>Repositório clonado</b><p>${esc(S.clone.path)}</p></div>` : ''}`;
+  }
+  return `<h2>Qual repositório?</h2><p class="lead">Escolha uma pasta com Git no servidor ou clone um repositório.</p>${tabs}${body}${nav(!!S.path)}`;
+}
+function bindRepo() {
+  document.querySelectorAll('[data-mode]').forEach((b) => (b.onclick = () => { S.repoMode = b.dataset.mode; render(); }));
+  const search = async () => {
+    S.base = $('#base').value.trim() || '~'; S.repos = 'loading'; render();
+    try { S.repos = (await api('/api/wizard/repos', { server: S.server, base: S.base })).repos; } catch (e) { S.repos = { error: e.message }; }
+    render();
+  };
+  $('#search')?.addEventListener('click', search);
+  $('#base')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
+  if (S.repoMode === 'existing' && S.repos == null && S.server) search();
+  document.querySelectorAll('[data-repo]').forEach((b) => (b.onclick = () => { const r = S.repos[+b.dataset.repo]; S.path = r.path; S.repo = r; if (!S.name) S.name = r.name; render(); }));
+  $('#manual')?.addEventListener('input', (e) => { const v = e.target.value.trim(); S.path = v.startsWith('/') ? v : ''; S.repo = null; $('[data-next]').disabled = !S.path; save(); });
+  const url = $('#url'), dest = $('#dest');
+  url?.addEventListener('input', () => { S.cloneUrl = url.value.trim(); if (!dest.dataset.touched) { S.cloneDest = S.cloneUrl ? `~/projetos/${repoName(S.cloneUrl)}` : ''; dest.value = S.cloneDest; } save(); });
+  dest?.addEventListener('input', () => { dest.dataset.touched = '1'; S.cloneDest = dest.value.trim(); save(); });
+  $('#clone')?.addEventListener('click', async (e) => {
+    busy(e.target, true, 'Clonando (pode levar alguns minutos)');
+    try { S.clone = await api('/api/wizard/clone', { server: S.server, url: S.cloneUrl, dest: S.cloneDest }); S.path = S.clone.path; S.name = S.name || repoName(S.cloneUrl); S.repos = null; }
+    catch (err) { S.clone = { error: err.message }; }
+    render();
+  });
+}
+
+function detailsStep() {
+  if (!S.color) S.color = COLORS[(boot.projects || 0) % COLORS.length];
+  const envs = [['dev', 'Desenvolvimento', 'Agentes editam livremente'], ['staging', 'Homologação', 'Igual a dev, para testes'], ['prod', 'Produção', 'Só leitura e aprovação de outra pessoa']];
+  const others = boot.people.filter((p) => p.id !== boot.me.id);
+  return `<h2>Detalhes do projeto</h2>
+<label>Nome<input id="name" value="${esc(S.name)}" maxlength="60" placeholder="Portal do Cliente"></label>
+<div><div style="font-size:14px;font-weight:500;margin-bottom:6px">Ambiente</div><div class="choices">${envs.map(([v, t, d]) => `<label class="choice"><input type="radio" name="env" value="${v}" ${S.env === v ? 'checked' : ''}><span><b>${t}</b><span>${d}</span></span></label>`).join('')}</div></div>
+${S.env === 'prod' ? '<div class="box warn"><b>Produção</b><p>Os agentes vão rodar em modo somente leitura e qualquer ação arriscada vai precisar da aprovação de outra pessoa.</p></div>' : ''}
+<div><div style="font-size:14px;font-weight:500;margin-bottom:6px">Como a equipe usa</div><div class="choices">
+<label class="choice"><input type="radio" name="collab" value="1" ${S.collab ? 'checked' : ''}><span><b>Colaborativo</b><span>Todos do projeto veem e usam os agentes</span></span></label>
+<label class="choice"><input type="radio" name="collab" value="0" ${!S.collab ? 'checked' : ''}><span><b>Individual</b><span>Cada pessoa vê só os próprios agentes</span></span></label></div></div>
+<div><div style="font-size:14px;font-weight:500;margin-bottom:6px">Cor</div><div class="colors">${COLORS.map((c) => `<button type="button" aria-label="Cor ${c}" data-color="${c}" class="${S.color === c ? 'on' : ''}" style="background:${c}"></button>`).join('')}</div></div>
+<div><div style="font-size:14px;font-weight:500;margin-bottom:6px">Quem mais acessa</div>${others.length ? `<div class="people">${others.map((p) => `<label class="person"><input type="checkbox" data-person="${esc(p.id)}" ${p.all ? 'checked disabled' : S.people.includes(p.id) ? 'checked' : ''}> <span>${esc(p.name)}${p.all ? ' <span class="hint">(vê todos)</span>' : ''}</span></label>`).join('')}</div>` : '<p class="hint" style="margin:0">Só você por enquanto. Convide pessoas em Minha conta › Administração.</p>'}</div>
+${nav(!!S.name.trim())}`;
+}
+function bindDetails() {
+  $('#name').addEventListener('input', (e) => { S.name = e.target.value; $('[data-next]').disabled = !S.name.trim(); save(); });
+  document.querySelectorAll('input[name=env]').forEach((r) => (r.onchange = () => { S.env = r.value; render(); }));
+  document.querySelectorAll('input[name=collab]').forEach((r) => (r.onchange = () => { S.collab = r.value === '1'; save(); }));
+  document.querySelectorAll('[data-color]').forEach((b) => (b.onclick = () => { S.color = b.dataset.color; render(); }));
+  document.querySelectorAll('[data-person]').forEach((c) => (c.onchange = () => { S.people = [...document.querySelectorAll('[data-person]:checked:not(:disabled)')].map((x) => x.dataset.person); save(); }));
+}
+
+function reviewStep() {
+  if (S.created) {
+    return `<div class="big" aria-hidden="true">✓</div><h2>Projeto criado</h2><p class="lead"><b>${esc(S.created.name)}</b> já aparece na Bancada.</p>
+<div class="box info"><b>Próximo passo</b><p>Na Bancada, clique em <b>Terminal</b>, escolha ${esc((S.tools?.agents || ['o agente']).join(' ou '))} e escreva a primeira tarefa.</p></div>
+<div class="nav"><button type="button" class="ghost" id="another">Criar outro projeto</button><button type="button" id="open">Abrir a Bancada</button></div>`;
+  }
+  const envName = { dev: 'Desenvolvimento', staging: 'Homologação', prod: 'Produção' }[S.env];
+  const ppl = boot.people.filter((p) => S.people.includes(p.id)).map((p) => p.name);
+  return `<h2>Revisar e criar</h2>
+<dl class="summary"><dt>Nome</dt><dd>${esc(S.name)}</dd><dt>Servidor</dt><dd>${esc(S.server)}</dd><dt>Pasta</dt><dd>${esc(S.path)}</dd><dt>Ambiente</dt><dd>${envName}</dd><dt>Uso</dt><dd>${S.collab ? 'Colaborativo' : 'Individual'}</dd><dt>Agentes</dt><dd>${esc((S.tools?.agents || []).join(', ') || 'a verificar')}</dd><dt>Acesso</dt><dd>Você${ppl.length ? ', ' + ppl.map(esc).join(', ') : ''}</dd></dl>
+<p id="err" class="box bad" hidden></p>
+<div class="nav"><button type="button" class="ghost" data-back>Voltar</button><button type="button" id="create">Criar projeto</button></div>`;
+}
+function bindReview() {
+  $('#create')?.addEventListener('click', async (e) => {
+    busy(e.target, true, 'Criando');
+    try {
+      const { project } = await api('/api/wizard/project', { name: S.name.trim(), server: S.server, path: S.path, env: S.env, collab: S.collab, color: S.color, people: S.people, agents: S.tools?.agents || [] });
+      S.created = project; render();
+    } catch (err) { busy(e.target, false); const p = $('#err'); p.textContent = err.message; p.hidden = false; }
+  });
+  $('#open')?.addEventListener('click', () => { try { sessionStorage.removeItem('bancada-wizard'); } catch {} location.href = '/?assistente=0'; });
+  // Outro projeto no mesmo servidor: pula direto para a escolha do repositório
+  $('#another')?.addEventListener('click', () => {
+    Object.assign(S, { step: 3, repoMode: 'existing', repos: null, repo: null, path: '', cloneUrl: '', cloneDest: '', clone: null, name: '', env: 'dev', collab: true, color: '', people: [], created: null });
+    boot.projects = (boot.projects || 0) + 1;
+    render();
+  });
+}
+
+(async function init() {
+  load();
+  if (S.created) { S.step = 0; S.created = null; }
+  if (S.step > 1 && !(S.ssh && S.ssh.ok)) S.step = 1; // depois de recarregar, testa a conexão de novo
+  try { boot = await api('/api/wizard/bootstrap'); } catch (e) { $('#view').innerHTML = `<div class="box bad"><b>Não consegui abrir o assistente</b><p>${esc(e.message)}</p></div>`; return; }
+  if (S.step >= 2 && !S.server) S.step = 1;
+  render();
+})();
+</script>
+</body>
+</html>
