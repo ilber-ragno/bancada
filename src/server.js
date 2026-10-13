@@ -20,7 +20,9 @@ import { can } from './permissions.js';
 import { filterFor, mergeFrom, makeView, canNode } from './acl.js';
 import { allUsers, findUser, publicUser, createUser, updateUser, resetPassword, revokeSessions, hasUsers } from './users.js';
 import { setSecret, checkVault } from './vault.js';
-import { exec, shq, writeRemote } from './ssh.js';
+import { exec, shq, writeRemote, parseTarget } from './ssh.js';
+import { mountPasskeys } from './passkey-routes.js';
+import { myPublicKeys, sshTest, trustHost, checkTools, findRepos, cloneRepo, createProject, servers as knownServers } from './wizard.js';
 
 const problems = assertConfig();
 if (problems.length) {
@@ -81,6 +83,9 @@ app.get('/icons/:file', (req, res) => {
   res.type('png').set('Cache-Control', 'public, max-age=86400').send(Buffer.from(b64, 'base64'));
 });
 
+// Passkeys (Touch ID / Face ID) e Touch ID do app do Mac
+mountPasskeys(app);
+
 // Daqui para baixo, só com sessão completa (senha trocada e 2FA, se exigido)
 app.use((req, res, next) => {
   const x = sessionOf(req);
@@ -94,7 +99,11 @@ app.use((req, res, next) => {
 const uiDir = path.join(cfg.root, 'web', 'ui');
 const indexHtml = () => fs.readdirSync(uiDir).filter((f) => /^\d+\.html$/.test(f)).sort().map((f) => fs.readFileSync(path.join(uiDir, f), 'utf8')).join('')
   .replace('<!--BANCADA_CONFIG-->', '<script>window.BANCADA_LIVE=true</script>');
-app.get('/', (req, res) => res.type('html').send(indexHtml()));
+// Primeira vez (sem projetos): abre o assistente. "/?assistente=0" abre a Bancada assim mesmo.
+app.get('/', (req, res) => {
+  if (!(getDoc().projects || []).length && can(req.user, 'projects') && req.query.assistente !== '0') return res.redirect('/wizard');
+  res.type('html').send(indexHtml());
+});
 
 app.use('/api', (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -185,7 +194,7 @@ app.post('/api/playbooks/:id/run', need('schedule'), wrap((req, res) => {
 }));
 
 // ---------- Skills e segredos de MCP ----------
-const slug = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'skill';
+const slug = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'skill';
 app.post('/api/skills/:id/install', need('skills'), wrap(async (req, res) => {
   const k = (getDoc().skills || []).find((s) => s.id === req.params.id);
   if (!k) throw new Error('Skill não encontrada');
@@ -269,6 +278,20 @@ app.post('/api/notify/test', need('integrations'), wrap(async (req, res) => {
   res.json({ sent });
 }));
 
+// ---------- Assistente de projetos ----------
+app.get('/wizard', (req, res) => (can(req.user, 'projects') ? res.type('html').send(fs.readFileSync(path.join(cfg.root, 'web', 'wizard.html'), 'utf8')) : res.redirect('/')));
+const hostTrusted = (target) => { const t = parseTarget(target); if (!srv().hostKeys[`${t.host}:${t.port}`]) throw new Error('Confirme a chave do servidor no passo 1 antes de continuar.'); return target; };
+app.get('/api/wizard/bootstrap', need('projects'), wrap(async (req, res) => {
+  const people = allUsers().filter((u) => u.active).map((u) => ({ id: u.id, name: u.name, role: u.role, all: u.projects === '*' }));
+  res.json({ me: { id: req.user.id, name: req.user.name }, ssh: await myPublicKeys(), servers: knownServers(), people, projects: (getDoc().projects || []).length });
+}));
+app.post('/api/wizard/ssh-test', need('projects'), wrap(async (req, res) => res.json(await sshTest(req.body?.server))));
+app.post('/api/wizard/ssh-trust', need('projects'), wrap((req, res) => { trustHost(req.body?.server, req.body?.fingerprint, req.user); res.json({ ok: true }); }));
+app.post('/api/wizard/tools', need('projects'), wrap(async (req, res) => res.json(await checkTools(hostTrusted(req.body?.server)))));
+app.post('/api/wizard/repos', need('projects'), wrap(async (req, res) => res.json({ repos: await findRepos(hostTrusted(req.body?.server), req.body?.base) })));
+app.post('/api/wizard/clone', need('projects'), wrap(async (req, res) => res.json(await cloneRepo(hostTrusted(req.body?.server), req.body?.url, req.body?.dest, req.user))));
+app.post('/api/wizard/project', need('projects'), wrap((req, res) => res.json({ project: createProject({ ...req.body, server: hostTrusted(req.body?.server) }, req.user) })));
+
 app.use((req, res) => res.status(404).json({ error: 'Não encontrado' }));
 // Erros inesperados: nunca devolve stack trace
 app.use((err, req, res, next) => { console.error('[erro]', err.message); res.status(err.status || 500).json({ error: err.expose ? err.message : 'Erro interno' }); });
@@ -276,10 +299,16 @@ app.use((err, req, res, next) => { console.error('[erro]', err.message); res.sta
 const httpServer = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
 httpServer.on('upgrade', (req, socket, head) => {
-  const originOk = !req.headers.origin || sameOrigin({ ...req, method: 'POST' });
-  const x = req.url === '/ws' && originOk ? sessionOf(req) : null;
-  if (!x || x.session.setup) { socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n'); socket.destroy(); return; }
-  wss.handleUpgrade(req, socket, head, (ws) => addClient(ws, x.user.id, x.sid));
+  // Um erro aqui derrubaria o processo inteiro (o app do Mac fecha): recusa a conexão em vez disso.
+  try {
+    const originOk = !req.headers.origin || sameOrigin(req, 'POST');
+    const x = req.url === '/ws' && originOk ? sessionOf(req) : null;
+    if (!x || x.session.setup) { socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n'); socket.destroy(); return; }
+    wss.handleUpgrade(req, socket, head, (ws) => addClient(ws, x.user.id, x.sid));
+  } catch (err) {
+    console.error('[ws] upgrade recusado:', err.message);
+    socket.destroy();
+  }
 });
 
 httpServer.listen(cfg.port, cfg.host, () => {
