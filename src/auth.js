@@ -202,3 +202,6 @@ export function setupSubmit(req, res) {
     res.redirect('/account');
   } catch (e) { setupPage(req, res, e.message, { name, login: lg }); }
 }
+
+export const _sessions = sessions;
+export { totpSecretOf };
